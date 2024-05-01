@@ -1,7 +1,14 @@
 const express = require('express');
-const { listContacts, getContactById, removeContact, addContact, updateContact } = require('../../models/contacts.js');
 const Joi = require('joi');
 const router = express.Router()
+const {
+  listContacts,
+  getContactById,
+  removeContact,
+  addContact,
+  updateContact,
+  updateContactStatus,
+} = require('../../service/index');
 
 const userSchemaPOST = Joi.object({
   name: Joi.string().min(5).required(),
@@ -13,7 +20,11 @@ const userSchemaPATCH = Joi.object({
   name: Joi.string().min(5),
   email: Joi.string().email(),
   phone: Joi.string().min(9),
-})
+});
+
+const userSchemaFavorite = Joi.object({
+  favorite: Joi.boolean(),
+});
 
 router.get('/', async (req, res, next) => {
   const contacts = await listContacts();
@@ -75,8 +86,8 @@ router.patch('/:contactId', async (req, res, next) => {
   if (error) {
     const validatingErrorMessage = error.details[0].message;
     return res
-        .status(400)
-        .json({ message: `${validatingErrorMessage}` });
+      .status(400)
+      .json({ message: `${validatingErrorMessage}` });
   }
 
   const contact = await getContactById(contactId);
@@ -90,6 +101,28 @@ router.patch('/:contactId', async (req, res, next) => {
 
   res.status(404).json({ message: 'Not found' });
 
-})
+});
+
+router.patch("/:contactId/favorite", async (request, response, next) => {
+  try {
+    const body = request.body;
+    const { error } = userSchemaFavorite.validate(body);
+
+    if (error) {
+      const validatingErrorMessage = error.details[0].message;
+      return response
+        .status(400)
+        .json({ message: `${validatingErrorMessage}` });
+    }
+
+    const contactId = request.params.contactId;
+    const updatedContactStatus = await updateContactStatus(contactId, body);
+    response.status(200).json(updatedContactStatus);
+    console.log("Contact updated successfully");
+  } catch (error) {
+    console.error("Error during updating contact: ", error);
+    next();
+  }
+});
 
 module.exports = router
