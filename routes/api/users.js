@@ -6,6 +6,7 @@ const router = express.Router();
 const { addUser, getUserByEmail } = require('../../service/index');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const authenticateToken = require('../../middlewares/authenticate');
 require('dotenv').config();
 
 const userSchema = joi.object({
@@ -103,6 +104,25 @@ router.post("/login", async (req, res, next) => {
     console.log("User token: ", user.token);
   } catch (error) {
     console.error("Error during login: ", error);
+    next();
+  }
+});
+
+router.get("/logout", authenticateToken, async (req, res, next) => {
+  try {
+    const user = req.user;
+
+    if (!user || !user.token) {
+      return res.status(401).json({ message: `Not authorized` });
+    }
+
+    user.token = null;
+    await user.save();
+    res.status(204);
+    console.log("User logout successfully");
+    console.log("User token: ", user.token);
+  } catch (error) {
+    console.error("Error during logout: ", error);
     next();
   }
 });
