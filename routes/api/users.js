@@ -7,6 +7,7 @@ const { addUser, getUserByEmail } = require('../../service/index');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const authenticateToken = require('../../middlewares/authenticate');
+const userLoggedIn = require('../../middlewares/userLoggedIn');
 require('dotenv').config();
 
 const userSchema = joi.object({
@@ -118,7 +119,7 @@ router.get("/logout", authenticateToken, async (req, res, next) => {
 
     user.token = null;
     await user.save();
-    res.status(204);
+    res.status(204).json({});
     console.log("User logout successfully");
     console.log("User token: ", user.token);
   } catch (error) {
@@ -126,5 +127,20 @@ router.get("/logout", authenticateToken, async (req, res, next) => {
     next();
   }
 });
+
+router.get("/current", [authenticateToken, userLoggedIn], async (req, res, next) => {
+    try {
+      const user = req.user;
+      res.json({
+        email: `${user.email}`,
+        subscription: `${user.subscription}`,
+      });
+      console.log("User token: ", user.token);
+    } catch (error) {
+      console.error("Something went wrong: ", error);
+      next();
+    }
+  }
+);
 
 module.exports = router
