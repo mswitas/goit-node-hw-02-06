@@ -29,6 +29,10 @@ const addUser = async (user) => {
     return User.create(user);
 }
 
+const getUserByEmail = async (email) => {
+    return User.findOne({ email: email });
+}
+
 module.exports = {
     listContacts,
     getContactById,
@@ -36,4 +40,6 @@ module.exports = {
     removeContact,
     updateContact,
     updateContactStatus,
+    addUser,
+    getUserByEmail,
 }

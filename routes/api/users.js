@@ -1,10 +1,9 @@
 const express = require('express');
-const Joi = require('joi');
+const joi = require('joi');
 const { joiPasswordExtendCore } = require('joi-password');
 const joiPassword = joi.extend(joiPasswordExtendCore);
 const router = express.Router();
-const Users = require('../../service/schemas/users');
-const { addUser } = require('../../service/index');
+const { addUser, getUserByEmail } = require('../../service/index');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
@@ -24,7 +23,7 @@ const userSchema = joi.object({
     .required(),
 });
 
-router.post("/users/signup", async (req, res, next) => {
+router.post("/signup", async (req, res, next) => {
   try {
     const body = req.body;
     const { error } = userSchema.validate(body);
@@ -58,7 +57,7 @@ router.post("/users/signup", async (req, res, next) => {
   }
 });
 
-router.post("/users/login", async (req, res, next) => {
+router.post("/login", async (req, res, next) => {
   try {
     const body = req.body;
     const { error } = userSchema.validate(body);
@@ -70,10 +69,10 @@ router.post("/users/login", async (req, res, next) => {
         .json({ message: `${validatingErrorMessage}` });
     }
 
-    const user = await Users.findOne({ email: body.email });
+    const user = await getUserByEmail(body.email);
 
     if (!user) {
-      return response
+      return res
         .status(401)
         .json({ message: `Email or password is wrong` });
     }
@@ -107,3 +106,5 @@ router.post("/users/login", async (req, res, next) => {
     next();
   }
 });
+
+module.exports = router
