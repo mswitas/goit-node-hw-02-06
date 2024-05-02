@@ -24,6 +24,40 @@ const userSchema = joi.object({
     .required(),
 });
 
+router.post("/users/signup", async (req, res, next) => {
+  try {
+    const body = req.body;
+    const { error } = userSchema.validate(body);
+    const existingUser = await Users.findOne({ email: body.email });
+
+    if (existingUser) {
+      return res
+        .status(409)
+        .json({ message: `Email ${body.email} is already in use` });
+    }
+
+    if (error) {
+      const validatingErrorMessage = error.details[0].message;
+      return res
+        .status(400)
+        .json({ message: `${validatingErrorMessage}` });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(body.password, salt);
+
+    const addedUser = await addUser({
+      email: body.email,
+      password: hashedPassword,
+    });
+    res.json(addedUser);
+    console.log("User signup successfully");
+  } catch (error) {
+    console.error("Error during signup: ", error);
+    next();
+  }
+});
+
 router.post("/users/login", async (req, res, next) => {
   try {
     const body = req.body;
