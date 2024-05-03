@@ -3,12 +3,16 @@ const joi = require('joi');
 const { joiPasswordExtendCore } = require('joi-password');
 const joiPassword = joi.extend(joiPasswordExtendCore);
 const router = express.Router();
-const { addUser, getUserByEmail } = require('../../service/index');
+const { addUser, getUserByEmail, updateAvatarUrl, deleteTempAvatar } = require('../../service/index');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const authenticateToken = require('../../middlewares/authenticate');
 const userLoggedIn = require('../../middlewares/userLoggedIn');
 const gravatar = require('gravatar');
+const multer = require('multer');
+const jimp = require('jimp');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 const userSchema = joi.object({
@@ -25,6 +29,20 @@ const userSchema = joi.object({
     .doesNotInclude(["password", "12345678", "qwertyui"])
     .required(),
 });
+
+const storage = multer.diskStorage({
+    destination: (request, file, callback) => {
+        callback(null, "./temp");
+    },
+    filename: (request, file, callback) => {
+        callback(null, Date.now() + path.extname(file.originalname));
+    },
+    limits: {
+        fileSize: 1048576,
+    },
+});
+
+const upload = multer({ storage: storage });
 
 router.post("/signup", async (req, res, next) => {
     try {
@@ -143,11 +161,47 @@ router.get("/current", [authenticateToken, userLoggedIn], async (req, res, next)
         res.json({
             email: `${user.email}`,
             subscription: `${user.subscription}`,
+            avatarUrl: `${user.avatarUrl}`,
         });
         
         console.log("User token: ", user.token);
     } catch (error) {
         console.error("Something went wrong: ", error);
+        next();
+    }
+});
+
+router.patch(
+    "/avatars",
+    [authenticateToken, userLoggedIn, upload.single("avatar")],
+    async (req, res, next) => {
+    try {
+        const user = req.user;
+        const file = req.file;
+        // const { file, user } = request;
+
+        const avatarUrl = `avatars/${user.id}-${Date.now()}-${file.originalname}`
+            .toLowerCase()
+            .replaceAll(" ", "-");
+
+        await jimp
+            .read(fs.readFileSync(file.path))
+            .then((lenna) => {
+            return lenna
+                .resize(250, 250)
+                .quality(80)
+                .write(`./public/${avatarUrl}`);
+            })
+            .then(() => {
+                updateAvatarUrl(user.id, avatarUrl);
+                deleteTempAvatar(file.filename);
+            return res.status(200).json({ avatarURL: `${avatarUrl}` });
+            })
+            .catch((err) => {
+                console.error(err);
+            });
+    } catch (error) {
+        console.error("The avatar has not been updated: ", error);
         next();
     }
 });
