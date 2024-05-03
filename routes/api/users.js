@@ -29,7 +29,7 @@ router.post("/signup", async (req, res, next) => {
   try {
     const body = req.body;
     const { error } = userSchema.validate(body);
-    const existingUser = await Users.findOne({ email: body.email });
+    const existingUser = await getUserByEmail(body.email);
 
     if (existingUser) {
       return res
