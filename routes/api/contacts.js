@@ -9,6 +9,7 @@ const {
   updateContact,
   updateContactStatus,
 } = require('../../service/index');
+const authenticateToken = require('../../middlewares/authenticate');
 
 const userSchemaPOST = Joi.object({
   name: Joi.string().min(5).required(),
@@ -26,13 +27,13 @@ const userSchemaFavorite = Joi.object({
   favorite: Joi.boolean(),
 });
 
-router.get('/', async (req, res, next) => {
-  const contacts = await listContacts();
+router.get('/', authenticateToken, async (req, res, next) => {
+  const contacts = await listContacts(req.user._id);
   res.json(contacts);
 })
 
-router.get('/:contactId', async (req, res, next) => {
-  const contact = await getContactById(req.params.contactId);
+router.get('/:contactId', authenticateToken, async (req, res, next) => {
+  const contact = await getContactById(req.user._id, req.params.contactId);
   if (contact) {
     return res.json(contact);
   }
@@ -43,7 +44,7 @@ router.get('/:contactId', async (req, res, next) => {
 
 })
 
-router.post('/', async (req, res, next) => {
+router.post('/', authenticateToken, async (req, res, next) => {
   try {
     const body = req.body;
     const { error } = userSchemaPOST.validate(body);
@@ -54,7 +55,7 @@ router.post('/', async (req, res, next) => {
         .json({ message: `${validatingErrorMessage}` });
     }
 
-    const addedContact = await addContact(body);
+    const addedContact = await addContact(req.user._id, body);
     console.log('Contact added successfully');
     res
       .status(201)
@@ -65,12 +66,12 @@ router.post('/', async (req, res, next) => {
   }
 })
 
-router.delete('/:contactId', async (req, res, next) => {
+router.delete('/:contactId', authenticateToken, async (req, res, next) => {
   const contactId = req.params.contactId;
-  const contact = await getContactById(contactId);
+  const contact = await getContactById(req.user._id, contactId);
   
   if (contact) {
-    await removeContact(contactId);
+    await removeContact(req.user._id, contactId);
     return res.json({ message: 'Contact deleted' });
   } 
     
@@ -78,7 +79,7 @@ router.delete('/:contactId', async (req, res, next) => {
 
 })
 
-router.patch('/:contactId', async (req, res, next) => {
+router.patch('/:contactId', authenticateToken, async (req, res, next) => {
   const contactId = req.params.contactId;
   const body = req.body;
   const { error } = userSchemaPATCH.validate(body);
@@ -90,10 +91,10 @@ router.patch('/:contactId', async (req, res, next) => {
       .json({ message: `${validatingErrorMessage}` });
   }
 
-  const contact = await getContactById(contactId);
+  const contact = await getContactById(req.user._id, contactId);
 
   if (contact) {
-    const newContact = await updateContact(contactId, body);
+    const newContact = await updateContact(req.user._id, contactId, body);
     return res
       .status(200)
       .json(newContact);
@@ -103,21 +104,21 @@ router.patch('/:contactId', async (req, res, next) => {
 
 });
 
-router.patch("/:contactId/favorite", async (request, response, next) => {
+router.patch("/:contactId/favorite", authenticateToken, async (req, res, next) => {
   try {
-    const body = request.body;
+    const body = req.body;
     const { error } = userSchemaFavorite.validate(body);
 
     if (error) {
       const validatingErrorMessage = error.details[0].message;
-      return response
+      return res
         .status(400)
         .json({ message: `${validatingErrorMessage}` });
     }
 
-    const contactId = request.params.contactId;
-    const updatedContactStatus = await updateContactStatus(contactId, body);
-    response.status(200).json(updatedContactStatus);
+    const contactId = req.params.contactId;
+    const updatedContactStatus = await updateContactStatus(req.user._id, contactId, body);
+    res.status(200).json(updatedContactStatus);
     console.log("Contact updated successfully");
   } catch (error) {
     console.error("Error during updating contact: ", error);

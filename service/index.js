@@ -1,27 +1,36 @@
 const Contact = require('./schemas/contacts');
+const User = require('./schemas/users');
 
-const listContacts = async () => {
-    return Contact.find();
+const listContacts = async (userId) => {
+    return Contact.find({owner: userId});
 };
 
-const getContactById = async (contactId) => {
-    return Contact.findOne({ _id: contactId });
+const getContactById = async (userId, contactId) => {
+    return Contact.findOne({ owner: userId, _id: contactId  });
 };
 
-const addContact = async (contact) => {
-    return Contact.create(contact);
+const addContact = async (userId, contact) => {
+    return Contact.create({ ...contact, owner: userId });
 };
 
-const removeContact = async (contactId) => {
-    return Contact.findOneAndDelete({ _id: contactId });
+const removeContact = async (userId, contactId) => {
+    return Contact.findOneAndDelete({ owner: userId, _id: contactId });
 };
 
-const updateContact = async (contactId, body) => {
-    return Contact.findByIdAndUpdate({ _id: contactId }, body, { new: true });
+const updateContact = async (userId,contactId, body) => {
+    return Contact.findByIdAndUpdate({ owner: userId, _id: contactId }, body, { new: true });
 };
 
-const updateContactStatus = async (contactId, body) => {
-    return Contact.findByIdAndUpdate({ _id: contactId }, body, { new: true });
+const updateContactStatus = async (userId, contactId, body) => {
+    return Contact.findByIdAndUpdate({ owner: userId, _id: contactId }, body, { new: true });
+}
+
+const addUser = async (user) => {
+    return User.create(user);
+}
+
+const getUserByEmail = async (email) => {
+    return User.findOne({ email: email });
 }
 
 module.exports = {
@@ -31,4 +40,6 @@ module.exports = {
     removeContact,
     updateContact,
     updateContactStatus,
+    addUser,
+    getUserByEmail,
 }
