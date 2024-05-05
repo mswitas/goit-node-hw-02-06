@@ -229,4 +229,31 @@ router.get("/verify/:verificationToken", async (req, res, next) => {
     }
 });
 
+router.post("/verify", async (req, res, next) => {
+    try {
+        const { email } = req.body;
+        const user = await getUserByEmail(email);
+
+        if (!email) {
+            return res
+                .status(400)
+                .json({ message: `Missing required field email` });
+        }
+
+        if (user.verify) {
+            return res
+                .status(400)
+                .json({ message: `Verification has already been passed` });
+        }
+
+        mailer.sendVerificationEmail(user.email, next, user.verificationToken);
+        return res
+            .status(200)
+            .json({ message: `Verification email sent again` });
+    } catch (error) {
+        console.error("Something went wrong: ", error);
+        next();
+    }
+});
+
 module.exports = router
