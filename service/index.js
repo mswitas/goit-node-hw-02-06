@@ -47,6 +47,10 @@ const deleteTempAvatar = (filename) => {
   }
 };
 
+const verifyUser = async (verificationToken) => {
+    return User.findOneAndUpdate({ verificationToken }, { verify: true, verificationToken: null }, { new: true });
+}
+
 module.exports = {
     listContacts,
     getContactById,
@@ -58,4 +62,5 @@ module.exports = {
     getUserByEmail,
     updateAvatarUrl,
     deleteTempAvatar,
+    verifyUser,
 }

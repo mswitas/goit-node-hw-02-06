@@ -3,7 +3,7 @@ const joi = require('joi');
 const { joiPasswordExtendCore } = require('joi-password');
 const joiPassword = joi.extend(joiPasswordExtendCore);
 const router = express.Router();
-const { addUser, getUserByEmail, updateAvatarUrl, deleteTempAvatar } = require('../../service/index');
+const { addUser, getUserByEmail, updateAvatarUrl, deleteTempAvatar, verifyUser } = require('../../service/index');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const authenticateToken = require('../../middlewares/authenticate');
@@ -209,6 +209,22 @@ router.patch(
             });
     } catch (error) {
         console.error("The avatar has not been updated: ", error);
+        next();
+    }
+});
+
+router.get("/verify/:verificationToken", async (req, res, next) => {
+    try {
+        const { verificationToken } = req.params;
+        const user = await verifyUser(verificationToken);
+
+    if (user) {
+        return res.status(200).json({ message: "Verification successful" });
+    } else {
+        next();
+    }
+    } catch (error) {
+        console.error("Something went wrong: ", error);
         next();
     }
 });
