@@ -13,6 +13,8 @@ const multer = require('multer');
 const jimp = require('jimp');
 const fs = require('fs');
 const path = require('path');
+const nanoid = require('nanoid-esm');
+const mailer = require('../../mailer/mailer');
 require('dotenv').config();
 
 const userSchema = joi.object({
@@ -70,13 +72,18 @@ router.post("/signup", async (req, res, next) => {
             s: "250",
             r: "pg",
             d: "wavatar",
-        });  
+        }); 
+        
+        const verificationToken = nanoid();
 
         const addedUser = await addUser({
             email: body.email,
             password: hashedPassword,
             avatarUrl,
+            verificationToken,
         });
+
+        mailer.sendVerificationEmail(body.email, next, verificationToken);
       
         res.json(addedUser);
         console.log("User signup successfully");
